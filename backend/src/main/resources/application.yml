@@ -1,0 +1,42 @@
+# Focusly 后端配置
+# 写安全：连接池配置、SQL 日志、字符集
+server:
+  port: 8080
+
+spring:
+  application:
+    name: focusly-pomodoro
+  datasource:
+    # TCP 连接 focusly 业务用户（不暴露 root）
+    url: jdbc:mysql://127.0.0.1:3306/focusly?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: focusly
+    password: focusly123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jackson:
+    # 与前端字段命名约定保持一致：驼峰
+    property-naming-strategy: LOWER_CAMEL_CASE
+    default-property-inclusion: non_null
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    # 开发环境打印 SQL，便于排查写安全问题
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      # 主键自增（与 schema 一致）
+      id-type: AUTO
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com.focusly: DEBUG

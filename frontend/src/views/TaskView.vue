@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useTaskStore } from '../stores/task'
+
 const task = useTaskStore()
+onMounted(() => task.load())
 </script>
 
 <template>
   <section class="page">
     <h2>学习任务清单</h2>
-    <p class="hint">当前任务数：{{ task.list.length }}</p>
+    <p class="hint">{{ task.loading ? '加载中...' : `当前任务数：${task.list.length}` }}</p>
   </section>
 </template>
 
