@@ -27,4 +27,17 @@ public interface SessionMapper extends BaseMapper<Session> {
     List<Map<String, Object>> aggregateDailyMinutes(
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate);
+
+    /**
+     * 某一天 WORK 会话累计专注分钟数（需求：根据 sessions 计算当日累计专注分钟数）。
+     * 区间为 [day, day+1)，避免跨日重叠。
+     */
+    @Select("""
+        SELECT COALESCE(SUM(duration_minutes), 0)
+        FROM pomodoro_session
+        WHERE session_type = 'WORK'
+          AND start_time >= #{day}
+          AND start_time < #{nextDay}
+        """)
+    int sumWorkMinutes(@Param("day") LocalDate day, @Param("nextDay") LocalDate nextDay);
 }

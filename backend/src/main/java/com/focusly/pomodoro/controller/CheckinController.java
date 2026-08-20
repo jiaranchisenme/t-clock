@@ -34,4 +34,9 @@ public class CheckinController {
             .map(d -> d.format(ISO))
             .collect(Collectors.toList()));
     }
+
+    @GetMapping("/streak")
+    public Result<Map<String, Object>> streak() {
+        return Result.ok(Map.of("streak", service.getStreak()));
+    }
 }
