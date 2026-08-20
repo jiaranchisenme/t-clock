@@ -7,7 +7,10 @@ export interface CountdownOptions {
   studySeconds: number
   /** 休息时长（秒） */
   restSeconds: number
-  /** 任一阶段结束时回调，参数为刚结束的模式 */
+  /**
+   * 任一阶段完整结束时回调，参数为刚结束的模式。
+   * "完整结束"指从 running=true 走到 remaining=0，不含中途重置/暂停/手动切换。
+   */
   onComplete?: (finishedMode: CountdownMode) => void
 }
 
@@ -17,13 +20,15 @@ export interface CountdownOptions {
  *    后台标签页 setInterval 虽被节流到 ~1Hz，前台恢复后下一帧立即自愈。
  * 2) 单一 intervalId 引用，开始前先 clear，杜绝叠加。
  * 3) 组件卸载 onUnmounted 必清，避免泄漏。
- * 4) 阶段结束不自动开始下一阶段，仅切换模式 + 调用 onComplete。
+ * 4) 阶段完整结束后进入"完成态"，不自动切模式 / 不自动开始，由调用方决定下一步。
  */
 export function useCountdown(options: CountdownOptions) {
   const { studySeconds, restSeconds, onComplete } = options
 
   const mode = ref<CountdownMode>('study')
   const running = ref(false)
+  // 是否处于"阶段完整结束、待用户确认"态
+  const completed = ref(false)
   const remaining = ref(studySeconds)
 
   // endTime 用 shallowRef 持有原始 number，避免响应式包装开销
@@ -56,20 +61,25 @@ export function useCountdown(options: CountdownOptions) {
     }
   }
 
-  /** 当前阶段结束：停止计时 + 切换模式（不自动开始）+ 回调 */
+  /**
+   * 当前阶段完整结束：
+   * - 停止计时
+   * - 不自动切换 mode（留给 View 在弹窗确认后决定）
+   * - 置 completed=true，进入"待确认"态
+   * - 调用 onComplete(finishedMode)
+   */
   function finishCurrentPhase() {
     stop()
     const finished = mode.value
-    // 4.1 学习→休息；4.2 休息→学习；均不自动开始
-    mode.value = finished === 'study' ? 'rest' : 'study'
-    // 切换模式后重置 remaining 为新模式的初始值
-    remaining.value = mode.value === 'study' ? studySeconds : restSeconds
+    completed.value = true
     onComplete?.(finished)
   }
 
-  /** 开始 / 继续计时（暂停后继续沿用原 endTime） */
+  /** 开始 / 继续计时（暂停后继续沿用剩余秒数重建 endTime） */
   function start() {
     if (running.value) return
+    // 完成态不允许直接 start，必须先 reset/switchMode 清除 completed
+    if (completed.value) return
     // 若 endTime 已耗尽或未设置，按当前模式重算
     if (endTime.value === 0 || remaining.value <= 0) {
       const total = mode.value === 'study' ? studySeconds : restSeconds
@@ -96,27 +106,33 @@ export function useCountdown(options: CountdownOptions) {
     }
   }
 
-  /** 重置：清定时器 + 回到 study 模式 + remaining 恢复学习时长 */
-  function reset() {
+  /**
+   * 重置：清定时器 + 清完成态 + 回到指定模式初始态
+   * @param targetMode 默认 'study'，便于完成弹窗"确认"后回到专注
+   */
+  function reset(targetMode: CountdownMode = 'study') {
     stop()
-    mode.value = 'study'
+    completed.value = false
+    mode.value = targetMode
     running.value = false
     endTime.value = 0
-    remaining.value = studySeconds
+    remaining.value = targetMode === 'study' ? studySeconds : restSeconds
   }
 
-  /** 手动切换模式（不自动开始） */
+  /** 手动切换模式（不自动开始）：会清完成态 */
   function switchMode(target: CountdownMode) {
     stop()
+    completed.value = false
     mode.value = target
     running.value = false
     endTime.value = 0
     remaining.value = target === 'study' ? studySeconds : restSeconds
   }
 
-  /** 应用新配置：重置到新模式初始态，运行中也会停止 */
+  /** 应用新配置：清完成态 + 回到 study 初始态，运行中也会停止 */
   function applyConfig(newStudy: number, newRest: number) {
     stop()
+    completed.value = false
     mode.value = 'study'
     running.value = false
     endTime.value = 0
@@ -141,6 +157,7 @@ export function useCountdown(options: CountdownOptions) {
   return {
     mode,
     running,
+    completed,
     remaining,
     progress,
     display,
