@@ -63,146 +63,206 @@ watch(range, (r) => {
 
 <template>
   <section class="page">
-    <header class="header">
-      <h2>数据可视化统计看板</h2>
-      <!-- 需求 1：近 7 天 / 近 30 天切换 -->
-      <div class="tabs" role="tablist" aria-label="统计周期">
+    <div class="page-head">
+      <div>
+        <h2>📊 数据可视化统计</h2>
+        <p class="sub">用数据见证每一次努力，量变终会达成质变 📈</p>
+      </div>
+      <!-- 需求 1：近 7 天 / 近 30 天切换 · 全局分段 tab -->
+      <div class="segment" role="tablist" aria-label="统计周期">
         <button
-          class="tab"
+          class="seg"
           :class="{ active: range === 'week' }"
           role="tab"
           @click="switchRange('week')"
         >近 7 天</button>
         <button
-          class="tab"
+          class="seg"
           :class="{ active: range === 'month' }"
           role="tab"
           @click="switchRange('month')"
         >近 30 天</button>
       </div>
-    </header>
+    </div>
 
+    <!-- 统计汇总卡片 · 3 列网格 -->
     <div class="summary-row">
-      <div class="summary-card">
-        <span class="summary-label">{{ currentLabel }}累计</span>
+      <div class="summary-card card">
+        <div class="summary-head">
+          <span class="summary-icon brand">🧮</span>
+          <span class="summary-label">{{ currentLabel }}累计</span>
+        </div>
         <span class="summary-value">{{ currentTotal }}<small>分钟</small></span>
       </div>
-      <div class="summary-card">
-        <span class="summary-label">日均专注</span>
+      <div class="summary-card card">
+        <div class="summary-head">
+          <span class="summary-icon leaf">🌱</span>
+          <span class="summary-label">日均专注</span>
+        </div>
         <span class="summary-value">{{ avgMinutes }}<small>分钟</small></span>
       </div>
-      <div class="summary-card">
-        <span class="summary-label">最高单日</span>
+      <div class="summary-card card">
+        <div class="summary-head">
+          <span class="summary-icon amber">🏆</span>
+          <span class="summary-label">最高单日</span>
+        </div>
         <span class="summary-value">{{ maxMinutes }}<small>分钟</small></span>
       </div>
     </div>
 
-    <p v-if="stats.error" class="error">{{ stats.error }}</p>
+    <div v-if="stats.error" class="error-tip">
+      <span class="error-ico">⚠️</span>
+      <span class="error-txt">{{ stats.error }}</span>
+    </div>
 
     <!-- 图表类型选择：柱状图 / 折线图 / 面积图 / 环形分布图 -->
-    <div class="tabs" role="tablist" aria-label="图表类型">
+    <div class="segment chart-tabs" role="tablist" aria-label="图表类型">
       <button
         v-for="t in CHART_TYPES"
         :key="t.key"
-        class="tab"
+        class="seg"
         :class="{ active: chartType === t.key }"
         role="tab"
         @click="chartType = t.key"
       >{{ t.label }}</button>
     </div>
 
-    <!-- 需求 7：StatsChart 只通过 props 接收 data 与类型 -->
-    <StatsChart
-      :data="currentData"
-      :title="chartTitle"
-      :scrollable="scrollable"
-      :chart-type="chartType"
-    />
+    <!-- 图表卡片：加大边距，给呼吸感 -->
+    <div class="chart-card card">
+      <StatsChart
+        :data="currentData"
+        :title="chartTitle"
+        :scrollable="scrollable"
+        :chart-type="chartType"
+      />
+    </div>
   </section>
 </template>
 
 <style scoped>
 .page {
-  padding: 24px 0;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 18px 48px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.header {
+/* ---------- 标题 ---------- */
+.page-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
-
-.tabs {
-  display: inline-flex;
-  padding: 4px;
-  gap: 4px;
-  background: var(--code-bg, #f4f3ec);
-  border: 1px solid var(--border, #e5e4e7);
-  border-radius: 999px;
+.page-head h2 {
+  margin: 0;
 }
-.tab {
-  border: none;
-  background: transparent;
-  padding: 6px 16px;
-  font-size: 14px;
-  border-radius: 999px;
-  color: var(--text, #6b6375);
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-.tab.active {
-  background: var(--accent, #aa3bff);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(170, 59, 255, 0.3);
+.page-head .sub {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
+/* ---------- 汇总卡片 ---------- */
 .summary-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
-@media (max-width: 640px) {
-  .summary-row { grid-template-columns: 1fr; }
-}
-
 .summary-card {
+  padding: 18px 18px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px 20px;
-  border: 1px solid var(--border, #e5e4e7);
-  border-radius: 12px;
-  background: var(--code-bg, #f4f3ec);
+  gap: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.summary-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.summary-icon.brand { background: var(--brand-50); }
+.summary-icon.leaf  { background: var(--leaf-50);  }
+.summary-icon.amber { background: var(--amber-50); }
+
 .summary-label {
   font-size: 13px;
-  color: var(--text, #6b6375);
+  color: var(--text-muted);
+  font-weight: 500;
 }
 .summary-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: var(--text-h, #08060d);
-  line-height: 1.2;
+  color: var(--text-h);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 .summary-value small {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text, #6b6375);
+  color: var(--text-muted);
   margin-left: 4px;
+  letter-spacing: 0;
 }
 
-.error {
-  padding: 10px 14px;
-  background: #fff4f0;
-  color: #d84a1b;
-  border: 1px solid #f2d6c6;
-  border-radius: 8px;
-  font-size: 14px;
+/* ---------- 错误提示 ---------- */
+.error-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--danger-50);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.error-ico { line-height: 1.4; }
+
+/* ---------- 图表类型分段 tab ---------- */
+.chart-tabs {
+  align-self: flex-start;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+.chart-tabs::-webkit-scrollbar { display: none; }
+
+/* ---------- 图表卡片：更大 padding，留出呼吸空间 ---------- */
+.chart-card {
+  padding: 24px;
+}
+
+/* ---------- 响应式：移动端 ---------- */
+@media (max-width: 640px) {
+  .summary-row { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 520px) {
+  .page { padding: 14px 12px 40px; gap: 14px; }
+  .summary-card { padding: 14px 14px 12px; gap: 8px; }
+  .summary-value { font-size: 24px; }
+  .chart-card { padding: 14px 12px 16px; }
+  .page-head { flex-direction: column; }
+  .page-head .segment { align-self: stretch; justify-content: center; display: flex; }
+  .page-head .segment .seg { flex: 1; text-align: center; }
 }
 </style>

@@ -176,53 +176,63 @@ function fmtTime(s: string): string {
 <template>
   <section class="page">
     <div class="header">
-      <h2>学习任务清单</h2>
-      <button class="btn danger-ghost" @click="askClearAll">清空全部</button>
+      <div class="header-text">
+        <h2>📝 学习任务清单</h2>
+        <p class="hint">未完成 <b>{{ unfinished }}</b> · 已完成 <b>{{ finished }}</b></p>
+      </div>
+      <button class="btn-pill ghost danger-ghost" @click="askClearAll" :disabled="taskStore.list.length === 0">
+        🗑️ 清空全部
+      </button>
     </div>
-    <p class="hint">未完成 {{ unfinished }} · 已完成 {{ finished }}</p>
 
-    <!-- 新增表单 -->
-    <div class="add-form">
-      <input
-        v-model="draftTitle"
-        class="input"
-        type="text"
-        placeholder="任务名称"
-        maxlength="100"
-        @keydown.enter="handleAdd"
-      />
-      <input
-        v-model="draftDesc"
-        class="input desc"
-        type="text"
-        placeholder="描述（可选）"
-        maxlength="500"
-        @keydown.enter="handleAdd"
-      />
-      <button class="btn primary" @click="handleAdd">添加</button>
+    <!-- 新增表单 · 卡片式 -->
+    <div class="card add-card">
+      <div class="add-form">
+        <input
+          v-model="draftTitle"
+          class="input"
+          type="text"
+          placeholder="任务名称（例如：背 50 个单词）"
+          maxlength="100"
+          @keydown.enter="handleAdd"
+        />
+        <input
+          v-model="draftDesc"
+          class="input desc"
+          type="text"
+          placeholder="描述（可选）"
+          maxlength="500"
+          @keydown.enter="handleAdd"
+        />
+        <button class="btn-pill primary" @click="handleAdd">＋ 添加</button>
+      </div>
+      <small v-if="addErr" class="err">{{ addErr }}</small>
     </div>
-    <small v-if="addErr" class="err">{{ addErr }}</small>
 
     <!-- 任务列表 -->
     <ul class="list" v-if="taskStore.list.length > 0">
       <li
         v-for="t in taskStore.list"
         :key="t.id"
-        class="item"
+        class="item card"
         :class="{ done: t.status === 1, active: timerStore.activeTaskId === t.id }"
       >
         <!-- 普通态 -->
         <div v-if="editingId !== t.id" class="item-main">
           <label class="check" @click.prevent="toggleStatus(t)">
             <input type="checkbox" :checked="t.status === 1" />
-            <span class="checkmark"></span>
+            <span class="checkmark">
+              <svg v-if="t.status === 1" viewBox="0 0 16 16" width="14" height="14" fill="none">
+                <path d="M3 8.5L6.5 12L13 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
           </label>
           <div class="content">
             <div class="title">{{ t.title }}</div>
             <div v-if="t.description" class="desc-text">{{ t.description }}</div>
             <div class="meta">
-              <span class="time">创建于 {{ fmtTime(t.createdAt) }}</span>
-              <span v-if="timerStore.activeTaskId === t.id" class="focus-tag">当前专注</span>
+              <span class="time">🕒 {{ fmtTime(t.createdAt) }}</span>
+              <span v-if="timerStore.activeTaskId === t.id" class="tag">当前专注</span>
             </div>
           </div>
           <div class="actions">
@@ -240,7 +250,7 @@ function fmtTime(s: string): string {
         <!-- 编辑态 -->
         <div v-else class="edit-form">
           <input v-model="editTitle" class="input" type="text" placeholder="任务名称" maxlength="100" />
-          <input v-model="editDesc" class="input desc" type="text" placeholder="描述" maxlength="500" />
+          <input v-model="editDesc" class="input" type="text" placeholder="描述（可选）" maxlength="500" />
           <small v-if="editErr" class="err">{{ editErr }}</small>
           <div class="edit-actions">
             <button class="mini" @click="cancelEdit">取消</button>
@@ -250,18 +260,34 @@ function fmtTime(s: string): string {
       </li>
     </ul>
 
-    <!-- 空状态 -->
-    <p v-else class="empty">{{ taskStore.loading ? '加载中...' : '暂无任务，添加一个开始吧' }}</p>
+    <!-- 空状态 · 卡片插图 -->
+    <div v-else class="empty-card card">
+      <div class="empty-illustration" aria-hidden="true">
+        <svg viewBox="0 0 120 120" width="120" height="120" fill="none">
+          <circle cx="60" cy="60" r="52" fill="var(--brand-50)"/>
+          <rect x="36" y="34" width="48" height="56" rx="8" fill="#fff" stroke="var(--brand-100)" stroke-width="2"/>
+          <rect x="44" y="46" width="32" height="4" rx="2" fill="var(--brand-100)"/>
+          <rect x="44" y="56" width="24" height="4" rx="2" fill="var(--brand-100)"/>
+          <rect x="44" y="66" width="28" height="4" rx="2" fill="var(--brand-100)"/>
+          <path d="M54 78L58 82L68 72" stroke="var(--leaf)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="84" cy="40" r="12" fill="var(--amber-50)"/>
+          <path d="M80 40 L83 43 L89 37" stroke="var(--amber)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">{{ taskStore.loading ? '正在加载任务…' : '还没有任务哦' }}</h3>
+      <p class="empty-desc">{{ taskStore.loading ? '稍等一下～' : '添加一个学习任务，从一小步开始专注吧 🌱' }}</p>
+    </div>
 
     <!-- 确认弹窗（不使用 confirm） -->
     <transition name="fade">
-      <div v-if="confirmOpen" class="modal-mask">
-        <div class="modal">
+      <div v-if="confirmOpen" class="modal-mask" @click.self="confirmOpen = false">
+        <div class="modal card">
+          <div class="modal-icon" aria-hidden="true">⚠️</div>
           <h3>请确认</h3>
           <p class="confirm-text">{{ confirmText }}</p>
           <div class="modal-actions">
-            <button class="btn" @click="confirmOpen = false">取消</button>
-            <button class="btn danger" @click="doConfirm">确定</button>
+            <button class="btn-pill" @click="confirmOpen = false">取消</button>
+            <button class="btn-pill" :class="confirmText.includes('删除') || confirmText.includes('清空') ? 'danger' : 'primary'" @click="doConfirm">确定</button>
           </div>
         </div>
       </div>
@@ -276,115 +302,112 @@ function fmtTime(s: string): string {
 
 <style scoped>
 .page {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 24px 16px;
-  position: relative;
+  padding: 20px 18px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
+
+/* ---------- 顶部 ---------- */
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
-.header h2 {
+.header-text h2 {
   margin: 0;
 }
-.hint {
-  color: var(--text-muted, #6b6b78);
+.header-text .hint {
+  margin: 4px 0 0;
+  color: var(--text-muted);
   font-size: 13px;
-  margin: 4px 0 16px;
+}
+.header-text .hint b {
+  color: var(--text-h);
+  font-weight: 600;
+}
+.danger-ghost {
+  color: var(--danger);
+  border-color: transparent;
+}
+.danger-ghost:hover:not(:disabled) {
+  background: var(--danger-50);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+/* ---------- 新增卡片 ---------- */
+.add-card {
+  padding: 16px;
 }
 .add-form {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 .input {
-  padding: 8px 12px;
-  border: 1px solid var(--border, #e2e2e8);
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
   flex: 1;
-  min-width: 120px;
+  min-width: 140px;
 }
 .input.desc {
   flex: 2;
-}
-.input:focus {
-  border-color: var(--brand, #6c4bd6);
-}
-.btn {
-  padding: 8px 16px;
-  border: 1px solid var(--border, #e2e2e8);
-  background: var(--surface, #fff);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.15s;
-}
-.btn:hover {
-  border-color: var(--brand, #6c4bd6);
-}
-.btn.primary {
-  background: var(--brand, #6c4bd6);
-  color: #fff;
-  border-color: var(--brand, #6c4bd6);
-}
-.btn.danger {
-  background: #e53935;
-  color: #fff;
-  border-color: #e53935;
-}
-.btn.danger-ghost {
-  background: transparent;
-  color: #e53935;
-  border-color: #e53935;
+  min-width: 180px;
 }
 .err {
-  color: #e53935;
+  color: var(--danger);
   font-size: 12px;
   display: block;
-  margin: 4px 0 8px;
+  margin: 8px 2px 0;
 }
+
+/* ---------- 列表 ---------- */
 .list {
   list-style: none;
   padding: 0;
-  margin: 16px 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .item {
-  border: 1px solid var(--border, #e2e2e8);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  background: var(--surface, #fff);
-  transition: all 0.15s;
+  padding: 14px 16px;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+.item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 .item.active {
-  border-color: var(--brand, #6c4bd6);
-  box-shadow: 0 0 0 2px rgba(108, 75, 214, 0.12);
+  border-color: var(--accent-border);
+  background: linear-gradient(180deg, #ffffff 0%, var(--brand-50) 100%);
 }
 .item.done {
-  background: var(--bg-muted, #f7f7fa);
-  opacity: 0.65;
+  background: var(--surface-muted);
+  opacity: 0.88;
 }
 .item.done .title {
   text-decoration: line-through;
-  color: var(--text-muted, #9a9aa8);
+  color: var(--text-muted);
 }
 .item.done .desc-text {
-  color: var(--text-muted, #9a9aa8);
+  color: var(--text-muted);
 }
 .item-main {
   display: flex;
   align-items: flex-start;
   gap: 12px;
 }
+
+/* 自定义 checkbox */
 .check {
   display: inline-block;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
   margin-top: 2px;
   position: relative;
@@ -398,158 +421,243 @@ function fmtTime(s: string): string {
 .checkmark {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--border, #cfcfd8);
-  border-radius: 6px;
-  transition: all 0.15s;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.check:hover .checkmark {
+  border-color: var(--brand);
 }
 .check input:checked + .checkmark {
-  background: var(--brand, #6c4bd6);
-  border-color: var(--brand, #6c4bd6);
+  background: var(--leaf);
+  border-color: var(--leaf);
+  box-shadow: 0 2px 6px -2px rgba(34, 197, 94, 0.6);
 }
-.check input:checked + .checkmark::after {
-  content: '';
-  position: absolute;
-  left: 6px;
-  top: 2px;
-  width: 5px;
-  height: 10px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
+
+/* 内容 */
 .content {
   flex: 1;
   min-width: 0;
 }
 .title {
   font-size: 15px;
-  font-weight: 500;
-  word-break: break-all;
+  font-weight: 600;
+  color: var(--text-h);
+  word-break: break-word;
+  line-height: 1.4;
 }
 .desc-text {
   font-size: 13px;
-  color: var(--text-muted, #6b6b78);
+  color: var(--text);
   margin-top: 4px;
-  word-break: break-all;
+  word-break: break-word;
+  line-height: 1.55;
 }
 .meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 .time {
-  font-size: 11px;
-  color: var(--text-muted, #9a9aa8);
+  font-size: 12px;
+  color: var(--text-muted);
 }
-.focus-tag {
-  font-size: 11px;
-  background: var(--brand, #6c4bd6);
-  color: #fff;
-  padding: 1px 8px;
-  border-radius: 999px;
-}
+
+/* 操作按钮 */
 .actions {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .mini {
-  padding: 4px 10px;
-  border: 1px solid var(--border, #e2e2e8);
-  background: var(--surface, #fff);
-  border-radius: 999px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-pill);
   cursor: pointer;
   font-size: 12px;
   transition: all 0.15s;
+  color: var(--text);
 }
 .mini:hover {
-  border-color: var(--brand, #6c4bd6);
-  color: var(--brand, #6c4bd6);
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-50);
 }
 .mini.active {
-  background: var(--brand, #6c4bd6);
+  background: var(--brand);
   color: #fff;
-  border-color: var(--brand, #6c4bd6);
+  border-color: var(--brand);
+}
+.mini.active:hover {
+  background: var(--brand-600);
+  color: #fff;
+  border-color: var(--brand-600);
 }
 .mini.primary {
-  background: var(--brand, #6c4bd6);
+  background: var(--brand);
   color: #fff;
-  border-color: var(--brand, #6c4bd6);
+  border-color: var(--brand);
+}
+.mini.primary:hover {
+  background: var(--brand-600);
+  color: #fff;
 }
 .mini.danger {
-  color: #e53935;
-  border-color: #e53935;
+  color: var(--danger);
+  border-color: transparent;
   background: transparent;
 }
 .mini.danger:hover {
-  background: #e53935;
-  color: #fff;
+  background: var(--danger-50);
+  color: var(--danger);
 }
+
+/* 编辑 */
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
+.edit-form .input { width: 100%; }
 .edit-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
-.empty {
+
+/* ---------- 空状态卡片 ---------- */
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  color: var(--text-muted, #9a9aa8);
-  padding: 48px 0;
-  font-size: 14px;
+  padding: 40px 20px 32px;
+  gap: 8px;
 }
+.empty-illustration {
+  margin-bottom: 4px;
+}
+.empty-title {
+  margin: 8px 0 0;
+  color: var(--text-h);
+  font-size: 16px;
+  font-weight: 600;
+}
+.empty-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- 确认弹窗 ---------- */
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
 }
 .modal {
-  background: var(--surface, #fff);
-  border-radius: 12px;
+  min-width: 300px;
+  max-width: 420px;
+  width: 100%;
   padding: 24px;
-  min-width: 320px;
-  max-width: 90vw;
+  text-align: center;
+  animation: pop 0.22s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+.modal-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
 }
 .modal h3 {
   margin: 0 0 8px;
+  font-size: 18px;
 }
 .confirm-text {
   font-size: 14px;
-  color: var(--text-muted, #6b6b78);
-  margin: 0 0 16px;
+  color: var(--text);
+  margin: 0 0 20px;
+  line-height: 1.6;
 }
 .modal-actions {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
+.btn-pill.danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.btn-pill.danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+/* ---------- Toast ---------- */
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: 36px;
   left: 50%;
   transform: translateX(-50%);
-  background: #333;
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: var(--text-h);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: var(--r-pill);
   font-size: 13px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow);
   z-index: 1100;
+  letter-spacing: 0.01em;
 }
+
+/* ---------- 动画 ---------- */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s;
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+@keyframes pop {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+/* ---------- 响应式：移动端 ---------- */
+@media (max-width: 520px) {
+  .page { padding: 14px 12px 40px; gap: 12px; }
+  .add-card { padding: 12px; }
+  .add-form { gap: 8px; }
+  .add-form .input.desc { flex: 1 1 100%; }
+  .item { padding: 12px; }
+  .item-main { flex-wrap: wrap; }
+  .actions { width: 100%; justify-content: flex-start; margin-top: 4px; }
+  .modal {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 20px;
+    min-width: 0;
+    animation: slide-up 0.25s cubic-bezier(0.3, 0.9, 0.3, 1);
+  }
+  @keyframes slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
 }
 </style>

@@ -282,56 +282,93 @@ const canPause = computed(() => countdown.running.value)
 <style scoped>
 .page {
   text-align: center;
-  padding: 32px 16px;
+  padding: 12px 4px 8px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
 }
+.page h2 {
+  font-size: 18px;
+  margin: 0;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+/* 模式切换：胶囊分段 */
 .mode-switch {
   display: inline-flex;
-  border: 1px solid var(--border, #e2e2e8);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 8px;
+  padding: 5px;
+  gap: 2px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-soft);
 }
 .mode-btn {
-  padding: 8px 28px;
+  padding: 9px 26px;
   background: transparent;
-  border: none;
+  border: 0;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-muted, #6b6b78);
-  transition: all 0.15s;
+  color: var(--text);
+  border-radius: var(--r-pill);
+  transition: all 0.2s;
+  font-weight: 500;
 }
+.mode-btn:hover { color: var(--text-h); }
 .mode-btn.active {
-  background: var(--brand, #6c4bd6);
-  color: #fff;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--text-h);
+  font-weight: 700;
 }
+.mode-btn.active { color: var(--brand); }
+.mode-btn.active.rest-mode { color: var(--leaf); }
+
+/* 大盘：加大留白、柔阴影外框 */
 .dial {
   position: relative;
-  width: 300px;
-  height: 300px;
-  margin: 24px auto;
+  width: 320px;
+  height: 320px;
+  margin: 0 auto;
+}
+.dial::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 0;
 }
 .dial-svg {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 .dial-bg {
   fill: none;
-  stroke: var(--border, #e2e2e8);
-  stroke-width: 12;
+  stroke: var(--border-soft);
+  stroke-width: 14;
 }
 .dial-fg {
   fill: none;
-  stroke: var(--brand, #6c4bd6);
-  stroke-width: 12;
+  stroke: var(--brand);
+  stroke-width: 14;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.3s ease;
+  transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.18));
 }
 .dial.study .dial-fg {
-  stroke: var(--brand, #6c4bd6);
+  stroke: var(--brand);
 }
 .dial.rest .dial-fg {
-  stroke: #2eb872;
+  stroke: var(--leaf);
+  filter: drop-shadow(0 4px 8px rgba(34, 197, 94, 0.18));
 }
 .dial-center {
   position: absolute;
@@ -340,80 +377,148 @@ const canPause = computed(() => countdown.running.value)
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 .dial-mode {
-  font-size: 14px;
-  color: var(--text-muted, #6b6b78);
-  letter-spacing: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 .dial-time {
-  font-size: 56px;
+  font-size: 62px;
   font-weight: 700;
-  letter-spacing: 4px;
-  margin: 8px 0;
+  letter-spacing: 2px;
+  margin: 4px 0;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
 }
+.dial.rest .dial-time { color: var(--leaf-600, #15803d); }
+.dial.study .dial-time { color: var(--brand-600); }
 .dial-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: var(--r-pill);
   font-size: 12px;
-  color: var(--text-muted, #6b6b78);
+  background: var(--surface-muted);
+  color: var(--text);
 }
+.dial-state::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+.dial-center .running::before { background: var(--leaf); box-shadow: 0 0 0 3px var(--leaf-50); animation: pulse 1.6s infinite; }
+.dial-center .paused::before  { background: var(--amber); }
+.dial-center .done::before    { background: var(--brand); }
+@keyframes pulse {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50%     { transform: scale(1.25); opacity: 0.75; }
+}
+
+/* 控制按钮：胶囊 + hover 动效 */
 .controls {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
-  margin: 16px 0;
 }
 .btn {
-  padding: 8px 20px;
-  border: 1px solid var(--border, #e2e2e8);
-  background: var(--surface, #fff);
-  border-radius: 999px;
+  min-width: 96px;
+  padding: 11px 22px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-pill);
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.15s;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: var(--shadow-soft);
+  color: var(--text-h);
 }
 .btn:hover:not(:disabled) {
-  border-color: var(--brand, #6c4bd6);
-  color: var(--brand, #6c4bd6);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.18);
+  border-color: var(--brand);
+  color: var(--brand);
 }
+.btn:active:not(:disabled) { transform: translateY(0); }
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn.primary {
-  background: var(--brand, #6c4bd6);
+  background: var(--brand);
   color: #fff;
-  border-color: var(--brand, #6c4bd6);
+  border-color: var(--brand);
+  box-shadow: 0 10px 24px -12px rgba(59, 130, 246, 0.6);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
 }
 .btn.ghost {
   background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--text);
 }
+.btn.ghost:hover:not(:disabled) {
+  background: var(--surface-muted);
+  color: var(--text-h);
+  border-color: transparent;
+}
+
+/* 今日专注：小徽章 + 卡 */
 .today {
-  color: var(--text-muted, #6b6b78);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border-radius: var(--r-pill);
   font-size: 13px;
-  margin-top: 16px;
+  font-weight: 600;
+  border: 1px solid var(--brand-100);
 }
-/* 弹窗 */
+.today::before {
+  content: '⏱';
+  font-size: 15px;
+}
+
+/* 弹窗：学生风极简卡片 */
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
 }
 .modal {
-  background: var(--surface, #fff);
-  border-radius: 12px;
-  padding: 24px;
-  min-width: 320px;
-  max-width: 90vw;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 24px 24px 20px;
+  width: min(420px, 100%);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-soft);
 }
 .modal h3 {
   margin: 0 0 16px;
-  font-size: 18px;
+  font-size: 17px;
+  color: var(--text-h);
 }
 .field {
   display: flex;
@@ -421,68 +526,110 @@ const canPause = computed(() => countdown.running.value)
   align-items: flex-start;
   gap: 4px;
   font-size: 12px;
-  color: var(--text-muted, #6b6b78);
+  color: var(--text);
   margin-bottom: 12px;
 }
 .field span em {
-  color: var(--text-muted, #9a9aa8);
+  color: var(--text-muted);
   font-style: normal;
   margin-left: 4px;
+  font-weight: 400;
 }
 .field input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border, #e2e2e8);
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
   font-size: 14px;
   box-sizing: border-box;
+  background: var(--surface);
 }
 .field input:focus {
   outline: none;
-  border-color: var(--brand, #6c4bd6);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-50);
 }
 .err {
-  color: #e53935;
-  font-size: 11px;
+  color: var(--danger);
+  font-size: 12px;
+  background: var(--danger-50);
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 .modal-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 .completed-icon {
-  font-size: 40px;
-  margin: 8px 0;
+  font-size: 48px;
+  line-height: 1;
+  margin: 0 0 8px;
+  text-align: center;
 }
-.completed-icon.study {
-  color: var(--brand, #6c4bd6);
-}
-.completed-icon.rest {
-  color: #2eb872;
-}
+.completed-icon.study { color: var(--brand); }
+.completed-icon.rest  { color: var(--leaf); }
 .completed-tip {
-  font-size: 13px;
-  color: var(--text-muted, #6b6b78);
-  margin: 8px 0 0;
+  font-size: 13.5px;
+  color: var(--text);
+  margin: 6px 0 0;
+  line-height: 1.6;
 }
+
+/* Toast：晴空蓝胶囊底 + 软阴影 */
 .toast {
   position: fixed;
-  bottom: 24px;
   left: 50%;
+  bottom: 36px;
   transform: translateX(-50%);
-  background: #333;
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: var(--text-h);
+  color: var(--surface);
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
   font-size: 13px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow);
   z-index: 1100;
+  max-width: min(92vw, 360px);
+  text-align: center;
+  font-weight: 500;
 }
+
 .fade-enter-active, .fade-leave-active {
-  transition: opacity 0.25s;
+  transition: opacity 0.2s;
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+/* ============ 响应式：≤520px 手机 ============ */
+@media (max-width: 520px) {
+  .page { padding: 6px 2px 4px; gap: 14px; }
+  .mode-btn { padding: 8px 22px; font-size: 13px; }
+  .dial { width: min(86vw, 320px); height: min(86vw, 320px); }
+  .dial::before { inset: -6px; }
+  .dial-time { font-size: clamp(44px, 14vw, 62px); letter-spacing: 1px; }
+  .dial-mode { letter-spacing: 2px; }
+  .controls { width: 100%; }
+  .btn { flex: 1 1 calc(50% - 10px); min-width: 0; padding: 12px 10px; }
+  .btn.ghost { flex: 1 1 100%; }
+  .modal {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 20px;
+    width: auto;
+    border-radius: var(--r-lg);
+    padding: 18px 18px 16px;
+    transform: none;
+    animation: slide-up 0.25s cubic-bezier(0.3, 0.9, 0.3, 1);
+  }
+  @keyframes slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; }
+  .toast { bottom: 24px; }
 }
 </style>
