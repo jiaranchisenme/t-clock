@@ -55,8 +55,27 @@ base.interceptors.response.use(
     return body.data as any
   },
   (err) => {
-    // HTTP 层错误兜底
-    return Promise.reject(new Error(err.message || '网络异常'))
+    // HTTP 层错误兜底：尽量把真实错误特征都塞进 Error message
+    // 例：HTTP 502 Bad Gateway - 后端：xx异常 - (/timer/config)
+    // 例：[ERR_NETWORK] - (http://localhost:8080/api/tasks)
+    const parts: string[] = [];
+    const status = err?.response?.status;
+    const statusText = err?.response?.statusText;
+    if (typeof status === 'number') {
+      parts.push(`HTTP ${status}${typeof statusText === 'string' ? ` ${statusText}` : ''}`);
+    } else if (typeof err?.code === 'string') {
+      // axios 层错误码：ECONNABORTED / ERR_NETWORK / ETIMEDOUT 等
+      parts.push(`[${err.code}]`);
+    } else if (typeof err?.message === 'string') {
+      parts.push(err.message);
+    }
+    const respData = err?.response?.data as { msg?: unknown; message?: unknown } | null | undefined;
+    const serverMsg = typeof respData?.msg === 'string' ? respData.msg : typeof respData?.message === 'string' ? respData.message : null;
+    if (serverMsg) parts.push(`后端：${serverMsg}`);
+    const url: unknown = err?.config?.url;
+    if (typeof url === 'string' && url) parts.push(`(${url})`);
+    const errMsg = parts.length > 0 ? parts.join(' - ') : '网络异常，请稍后重试';
+    return Promise.reject(new Error(errMsg));
   },
 )
 
