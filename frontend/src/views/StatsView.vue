@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useStatsStore } from '../stores/stats'
-import StatsChart from '../components/StatsChart.vue'
+import StatsChart, { type ChartType } from '../components/StatsChart.vue'
 
 type Range = 'week' | 'month'
 
 const stats = useStatsStore()
 const range = ref<Range>('week')
+// 新增：图表类型选择（bar 柱 / line 折 / area 面积 / pie 环形）
+const chartType = ref<ChartType>('bar')
+const CHART_TYPES: readonly { key: ChartType; label: string }[] = [
+  { key: 'bar', label: '柱状图' },
+  { key: 'line', label: '折线图' },
+  { key: 'area', label: '面积图' },
+  { key: 'pie', label: '环形分布图' },
+] as const
 
 // 需求 1：7 天 vs 30 天；当前 tab 数据 & 汇总
 const currentData = computed(() =>
@@ -91,11 +99,24 @@ watch(range, (r) => {
 
     <p v-if="stats.error" class="error">{{ stats.error }}</p>
 
-    <!-- 需求 7：StatsChart 只通过 props 接收 data -->
+    <!-- 图表类型选择：柱状图 / 折线图 / 面积图 / 环形分布图 -->
+    <div class="tabs" role="tablist" aria-label="图表类型">
+      <button
+        v-for="t in CHART_TYPES"
+        :key="t.key"
+        class="tab"
+        :class="{ active: chartType === t.key }"
+        role="tab"
+        @click="chartType = t.key"
+      >{{ t.label }}</button>
+    </div>
+
+    <!-- 需求 7：StatsChart 只通过 props 接收 data 与类型 -->
     <StatsChart
       :data="currentData"
       :title="chartTitle"
       :scrollable="scrollable"
+      :chart-type="chartType"
     />
   </section>
 </template>
