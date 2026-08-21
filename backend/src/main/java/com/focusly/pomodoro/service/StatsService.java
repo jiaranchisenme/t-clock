@@ -22,16 +22,9 @@ public class StatsService {
         LocalDate today = LocalDate.now();
         LocalDate start30 = today.minusDays(29);
         LocalDate start7 = today.minusDays(6);
-        LocalDate monthStart = today.withDayOfMonth(1);
 
         // 一次查询 30 天范围，内存切分 7 天与 30 天，减少 DB 往返
-        List<Map<String, Object>> rows = sessionMapper.aggregateDailyMinutes(start30, today.plusDays(1));
-        Map<LocalDate, Integer> byDate = new HashMap<>();
-        for (Map<String, Object> row : rows) {
-            LocalDate d = ((java.sql.Date) row.get("day")).toLocalDate();
-            int m = ((Number) row.get("minutes")).intValue();
-            byDate.put(d, m);
-        }
+        Map<LocalDate, Integer> byDate = aggregate(start30, today.plusDays(1));
 
         StatsBundle bundle = new StatsBundle();
         bundle.setDaily7(fillRange(start7, today, byDate));
@@ -44,6 +37,34 @@ public class StatsService {
         return bundle;
     }
 
+    /** 需求 1：近 7 天（含今日），按日期从旧到新排序，缺失日期补 0，按日求和 studyTime */
+    public List<DayStat> week() {
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(6);
+        Map<LocalDate, Integer> byDate = aggregate(start, today.plusDays(1));
+        return fillRange(start, today, byDate);
+    }
+
+    /** 需求 1：近 30 天（含今日） */
+    public List<DayStat> month() {
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(29);
+        Map<LocalDate, Integer> byDate = aggregate(start, today.plusDays(1));
+        return fillRange(start, today, byDate);
+    }
+
+    private Map<LocalDate, Integer> aggregate(LocalDate start, LocalDate endExclusive) {
+        List<Map<String, Object>> rows = sessionMapper.aggregateDailyMinutes(start, endExclusive);
+        Map<LocalDate, Integer> byDate = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            LocalDate d = ((java.sql.Date) row.get("day")).toLocalDate();
+            int m = ((Number) row.get("minutes")).intValue();
+            byDate.merge(d, m, Integer::sum); // 按日求和 studyTime（需求 4）
+        }
+        return byDate;
+    }
+
+    /** 需求 5/6：缺失日期补 0，从旧到新顺序 */
     private List<DayStat> fillRange(LocalDate start, LocalDate end, Map<LocalDate, Integer> src) {
         List<DayStat> list = new ArrayList<>();
         for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {

@@ -19,3 +19,8 @@ export interface SessionSaveResult {
 export function saveSession(payload: Session) {
   return http.post<SessionSaveResult, SessionSaveResult>('/sessions', payload)
 }
+
+// 需求 3：接口失败时「从本地 sessions 聚合」——先拉 sessions 列表再前端按日求和
+export function listSessions(params?: { startDate?: string; endDate?: string }) {
+  return http.get<Session[], Session[]>('/sessions', { params })
+}

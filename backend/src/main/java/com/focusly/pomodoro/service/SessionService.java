@@ -1,5 +1,6 @@
 package com.focusly.pomodoro.service;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.focusly.pomodoro.dto.request.SessionSaveRequest;
 import com.focusly.pomodoro.dto.response.SessionSaveResult;
 import com.focusly.pomodoro.entity.Session;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -46,5 +49,31 @@ public class SessionService {
         result.setSessionId(session.getId());
         result.setTodayFocusMinutes(todayFocus);
         return result;
+    }
+
+    /**
+     * 会话列表（需求 3：/stats/week 或 /stats/month 失败时，前端本地 sessions 聚合 fallback）。
+     * - startDate / endDate（可选，闭区间按日期）：不传则返回最近 90 天
+     * - 按 startTime 升序
+     */
+    public List<Session> list(String startDate, String endDate) {
+        LocalDate start = parseDate(startDate, LocalDate.now().minusDays(90));
+        LocalDate end = parseDate(endDate, LocalDate.now());
+        LocalDateTime from = start.atStartOfDay();
+        LocalDateTime to = end.plusDays(1).atStartOfDay();
+        return sessionMapper.selectList(
+            Wrappers.<Session>lambdaQuery()
+                .ge(Session::getStartTime, from)
+                .lt(Session::getStartTime, to)
+                .orderByAsc(Session::getStartTime));
+    }
+
+    private LocalDate parseDate(String s, LocalDate fallback) {
+        if (s == null || s.isBlank()) return fallback;
+        try {
+            return LocalDate.parse(s);
+        } catch (Exception ignore) {
+            return fallback;
+        }
     }
 }
